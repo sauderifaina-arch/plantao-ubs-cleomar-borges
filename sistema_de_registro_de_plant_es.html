@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedPlantão - Gestão & Registro de Plantões Médicos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <header class="bg-sky-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateHome()">
+                <div class="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
+                    <i class="fa-solid fa-file-medical text-2xl text-sky-200"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-tight">MedPlantão</h1>
+                    <p class="text-[11px] text-sky-200 font-medium">Gestão & Controle de Plantões Médicos</p>
+                </div>
+            </div>
+            <div id="headerNavActions" class="flex items-center gap-3">
+                <!-- Content dynamically rendered -->
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-grow">
+
+        <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+        <!-- AUTH SECTION -->
+        <section id="authSection" class="max-w-md mx-auto py-8">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden p-6 sm:p-8">
+                
+                <!-- LOGIN FORM -->
+                <div id="loginCard">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex bg-sky-50 text-sky-600 p-3 rounded-2xl mb-3 shadow-inner">
+                            <i class="fa-solid fa-hospital-user text-2xl"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800">Acesse sua Conta</h2>
+                        <p class="text-xs text-slate-500 mt-1">Entre com seu e-mail cadastrado e senha para continuar.</p>
+                    </div>
+
+                    <form onsubmit="handleLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">E-MAIL</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </span>
+                                <input type="email" id="loginEmail" required placeholder="ex. medico@medplantao.com"
+                                    class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">SENHA</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                                    <i class="fa-solid fa-lock"></i>
+                                </span>
+                                <input type="password" id="loginPassword" required placeholder="••••••••"
+                                    class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-md shadow-sky-600/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-right-to-bracket"></i> Entrar na Plataforma
+                        </button>
+                    </form>
+
+                    <div class="mt-6 text-center border-t border-slate-100 pt-4">
+                        <p class="text-xs text-slate-500">Ainda não possui conta?</p>
+                        <button type="button" onclick="toggleAuthView('signup')" class="mt-1 text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline">
+                            Criar Novo Cadastro Médico/Gestor
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SIGNUP FORM -->
+                <div id="signupCard" class="hidden">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex bg-emerald-50 text-emerald-600 p-3 rounded-2xl mb-3 shadow-inner">
+                            <i class="fa-solid fa-user-plus text-2xl"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800">Novo Cadastro</h2>
+                        <p class="text-xs text-slate-500 mt-1">Preencha os dados abaixo para se cadastrar.</p>
+                    </div>
+
+                    <form onsubmit="handleSignup(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">NOME COMPLETO</label>
+                            <input type="text" id="signupNome" required placeholder="Ex. Dr. Carlos Silva"
+                                class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">TIPO DE PERFIL</label>
+                                <select id="signupRole" onchange="toggleCrmVisibility()" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                                    <option value="doctor">Médico Plantonista</option>
+                                    <option value="admin">Secretaria de Saúde (Gestor)</option>
+                                </select>
+                            </div>
+
+                            <div id="crmFieldsGroup">
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">CRM / UF</label>
+                                <div class="flex gap-1">
+                                    <input type="text" id="signupCrm" placeholder="12345" required
+                                        class="w-3/5 px-2 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                                    <select id="signupUf" class="w-2/5 px-1 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                                        <option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option><option value="RS">RS</option><option value="PR">PR</option><option value="SC">SC</option><option value="BA">BA</option><option value="GO">GO</option><option value="DF">DF</option><option value="ES">ES</option><option value="PE">PE</option><option value="CE">CE</option><option value="PA">PA</option><option value="AM">AM</option><option value="RN">RN</option><option value="PB">PB</option><option value="AL">AL</option><option value="SE">SE</option><option value="PI">PI</option><option value="MA">MA</option><option value="TO">TO</option><option value="RO">RO</option><option value="AC">AC</option><option value="AP">AP</option><option value="RR">RR</option><option value="MT">MT</option><option value="MS">MS</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">E-MAIL</label>
+                            <input type="email" id="signupEmail" required placeholder="ex. seuemail@dominio.com"
+                                class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">SENHA</label>
+                            <input type="password" id="signupPassword" required placeholder="Mínimo 6 caracteres" minlength="6"
+                                class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Concluir Cadastro
+                        </button>
+                    </form>
+
+                    <div class="mt-6 text-center border-t border-slate-100 pt-4">
+                        <button type="button" onclick="toggleAuthView('login')" class="text-xs font-bold text-slate-600 hover:text-slate-800 hover:underline">
+                            <i class="fa-solid fa-arrow-left mr-1"></i> Voltar para o Login
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- DOCTOR DASHBOARD -->
+        <section id="doctorView" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-sky-600 to-blue-700 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="bg-white/20 text-white text-[11px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Unidade Fixa</span>
+                    <h2 id="docWelcomeTitle" class="text-2xl font-extrabold mt-2">Painel do Médico</h2>
+                    <p class="text-xs text-sky-100 mt-0.5"><span id="docHeaderUnit">UBS Cleomar Borges de Oliveira</span></p>
+                </div>
+                <div class="flex items-center gap-3 bg-white/10 px-4 py-3 rounded-xl border border-white/15 backdrop-blur-sm">
+                    <div class="text-right">
+                        <div class="text-xs text-sky-200">Seus Plantões Proporcionais (12h base)</div>
+                        <div id="docTotalCounter" class="text-xl font-black">0,0 plantões</div>
+                    </div>
+                    <div class="bg-white/20 p-2.5 rounded-xl text-sky-100">
+                        <i class="fa-solid fa-user-doctor text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- NOVO PLANTAO FORM -->
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 lg:col-span-1">
+                    <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                        <div class="bg-sky-50 text-sky-600 p-2 rounded-lg">
+                            <i class="fa-solid fa-calendar-plus"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm">Registrar Novo Plantão</h3>
+                    </div>
+
+                    <form onsubmit="handleRegisterShift(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">DATA DO PLANTÃO</label>
+                            <input type="date" id="docShiftDate" required
+                                class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">TIPO / HORÁRIO</label>
+                            <div class="grid grid-cols-3 gap-2 mb-2">
+                                <button type="button" onclick="setDocShiftPreset('diurno')" id="btnPresetDiurno"
+                                    class="py-2 text-xs font-bold rounded-xl border transition bg-sky-50 border-sky-300 text-sky-700">
+                                    Diurno (12h)
+                                </button>
+                                <button type="button" onclick="setDocShiftPreset('noturno')" id="btnPresetNoturno"
+                                    class="py-2 text-xs font-bold rounded-xl border transition bg-slate-50 border-slate-200 text-slate-600">
+                                    Noturno (12h)
+                                </button>
+                                <button type="button" onclick="setDocShiftPreset('custom')" id="btnPresetCustom"
+                                    class="py-2 text-xs font-bold rounded-xl border transition bg-slate-50 border-slate-200 text-slate-600">
+                                    Outro (Horas)
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block mb-0.5">Início</span>
+                                    <input type="time" id="docStartTime" value="07:00" onchange="recalculateDocHours()" required
+                                        class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block mb-0.5">Término</span>
+                                    <input type="time" id="docEndTime" value="19:00" onchange="recalculateDocHours()" required
+                                        class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 flex justify-between items-center text-xs">
+                            <span class="text-slate-600 font-medium">Carga horária total:</span>
+                            <span id="docCalculatedHours" class="font-bold text-sky-700">12.0h</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">OBSERVAÇÕES (OPCIONAL)</label>
+                            <input type="text" id="docShiftObs" placeholder="Ex. Cobertura de plantão"
+                                class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                        </div>
+
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-md shadow-sky-600/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> Salvar & Registrar Plantão
+                        </button>
+                    </form>
+                </div>
+
+                <!-- HISTORICO DO MEDICO -->
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 lg:col-span-2 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-emerald-50 text-emerald-600 p-2 rounded-lg">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-sm">Meus Plantões Registrados</h3>
+                        </div>
+                        <span id="docShiftCountBadge" class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">0 plantões</span>
+                    </div>
+
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 border-b border-slate-100">
+                                    <th class="p-3 font-semibold">Data</th>
+                                    <th class="p-3 font-semibold">Horário</th>
+                                    <th class="p-3 font-semibold">Carga Horária</th>
+                                    <th class="p-3 font-semibold">Equivalência (12h)</th>
+                                    <th class="p-3 font-semibold">Observação</th>
+                                    <th class="p-3 font-semibold text-right">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="docShiftsTableBody" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="6" class="text-center py-8 text-slate-400">Nenhum plantão registrado até o momento.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN DASHBOARD -->
+        <section id="adminView" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="bg-sky-500/20 text-sky-300 text-[11px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider border border-sky-500/30">Secretaria de Saúde</span>
+                    <h2 class="text-2xl font-extrabold mt-2">Painel de Gestão & Auditoria</h2>
+                    <p class="text-xs text-slate-300 mt-0.5">UBS Cleomar Borges de Oliveira</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/10 px-4 py-2.5 rounded-xl border border-white/10 backdrop-blur-sm text-right">
+                        <div class="text-[10px] text-slate-300">Total Proporcional (12h)</div>
+                        <div id="adminTotalPlantaoCount" class="text-lg font-black text-sky-300">0,0</div>
+                    </div>
+                    <div class="bg-white/10 px-4 py-2.5 rounded-xl border border-white/10 backdrop-blur-sm text-right">
+                        <div class="text-[10px] text-slate-300">Horas Acumuladas</div>
+                        <div id="adminTotalHoursCount" class="text-lg font-black text-emerald-300">0h</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTROS, EXPORTAÇÃO E BACKUP -->
+            <div class="bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <div class="relative w-full sm:w-64">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="adminSearchFilter" oninput="renderAdminDashboard()" placeholder="Filtrar por médico ou CRM..."
+                            class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                    </div>
+                    <select id="adminDoctorFilter" onchange="renderAdminDashboard()" class="px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50">
+                        <option value="">Todos os Médicos</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+                    <button onclick="backupSystemData()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3 py-2 rounded-xl font-medium transition flex items-center gap-1.5 shadow-sm" title="Baixar cópia de segurança em arquivo">
+                        <i class="fa-solid fa-download"></i> Backup Dados
+                    </button>
+                    <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-2 rounded-xl font-medium transition flex items-center gap-1.5 cursor-pointer shadow-sm" title="Restaurar backup recebido de outro dispositivo">
+                        <i class="fa-solid fa-upload"></i> Restaurar
+                        <input type="file" accept=".json" onchange="restoreSystemData(event)" class="hidden">
+                    </label>
+                    <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2 rounded-xl font-medium transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-file-excel"></i> Exportar CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABELA GERAL DE PLANTÕES -->
+            <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="bg-sky-50 text-sky-600 p-2 rounded-lg">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm">Escala & Plantões Lançados</h3>
+                    </div>
+                    <span id="adminRecordCount" class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">0 registros</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 border-b border-slate-100">
+                                <th class="p-3 font-semibold">Data</th>
+                                <th class="p-3 font-semibold">Médico(a)</th>
+                                <th class="p-3 font-semibold">CRM</th>
+                                <th class="p-3 font-semibold">Horário</th>
+                                <th class="p-3 font-semibold">Carga Horária</th>
+                                <th class="p-3 font-semibold">Equivalência (12h)</th>
+                                <th class="p-3 font-semibold">Observação</th>
+                                <th class="p-3 font-semibold text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminShiftsTableBody" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="8" class="text-center py-8 text-slate-400">Nenhum plantão registrado no sistema.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+    <div id="deleteModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center">
+            <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h4 class="font-bold text-slate-800 text-base">Excluir Plantão?</h4>
+            <p class="text-xs text-slate-500 mt-1">Esta ação não poderá ser desfeita. O plantão será removido do sistema.</p>
+            <div class="grid grid-cols-2 gap-2 mt-5">
+                <button type="button" onclick="closeDeleteModal()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmDeleteShift()" class="py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl text-xs transition shadow-md shadow-rose-600/20">
+                    Sim, Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_EMAIL = "sauderifaina@gmail.com";
+        const ADMIN_PASS = "saude1174";
+
+        let users = [];
+        let plantoes = [];
+        let currentUser = null;
+        let deleteTargetId = null;
+        let docCurrentPreset = 'diurno';
+
+        // STORAGE FALLBACK ENGINE (SUPPORTS IFRAME / COOKIE RESTRICTIONS)
+        function safeGetStorage(key) {
+            try {
+                return localStorage.getItem(key) || sessionStorage.getItem(key);
+            } catch (e) {
+                return window[key] || null;
+            }
+        }
+
+        function safeSetStorage(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {}
+            try {
+                sessionStorage.setItem(key, value);
+            } catch (e) {}
+            window[key] = value;
+        }
+
+        function safeRemoveStorage(key) {
+            try { localStorage.removeItem(key); } catch (e) {}
+            try { sessionStorage.removeItem(key); } catch (e) {}
+            delete window[key];
+        }
+
+        function loadData() {
+            try {
+                const storedUsers = safeGetStorage('med_users_v10');
+                if (storedUsers) {
+                    users = JSON.parse(storedUsers);
+                }
+            } catch(e) {}
+
+            // Ensure Admin user always exists
+            let adminUser = users.find(u => u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+            if (!adminUser) {
+                adminUser = {
+                    id: 'usr_admin_default',
+                    nome: 'Secretaria de Saúde (Gestor)',
+                    crm: 'SEC-SAUDE',
+                    email: ADMIN_EMAIL,
+                    password: ADMIN_PASS,
+                    role: 'admin'
+                };
+                users.push(adminUser);
+            } else {
+                adminUser.password = ADMIN_PASS; // Force correct password update
+            }
+
+            try {
+                const storedShifts = safeGetStorage('med_plantoes_v10');
+                if (storedShifts) {
+                    plantoes = JSON.parse(storedShifts);
+                } else {
+                    plantoes = [];
+                }
+            } catch(e) {
+                plantoes = [];
+            }
+
+            try {
+                const savedUser = safeGetStorage('med_current_user_v10');
+                if (savedUser) {
+                    const parsed = JSON.parse(savedUser);
+                    const exists = users.find(u => u.email.toLowerCase() === parsed.email?.toLowerCase());
+                    if (exists) currentUser = exists;
+                }
+            } catch(e) {}
+        }
+
+        function saveData() {
+            safeSetStorage('med_users_v10', JSON.stringify(users));
+            safeSetStorage('med_plantoes_v10', JSON.stringify(plantoes));
+            if (currentUser) {
+                safeSetStorage('med_current_user_v10', JSON.stringify(currentUser));
+            } else {
+                safeRemoveStorage('med_current_user_v10');
+            }
+        }
+
+        window.onload = function() {
+            loadData();
+            const dateInput = document.getElementById('docShiftDate');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+            updateAppView();
+        };
+
+        function calculateHours(start, end) {
+            const [h1, m1] = start.split(':').map(Number);
+            const [h2, m2] = end.split(':').map(Number);
+            let startMinutes = h1 * 60 + m1;
+            let endMinutes = h2 * 60 + m2;
+            if (endMinutes <= startMinutes) {
+                endMinutes += 24 * 60;
+            }
+            return (endMinutes - startMinutes) / 60;
+        }
+
+        function updateAppView() {
+            const authSection = document.getElementById('authSection');
+            const doctorView = document.getElementById('doctorView');
+            const adminView = document.getElementById('adminView');
+            const navActions = document.getElementById('headerNavActions');
+
+            if (!currentUser) {
+                authSection.classList.remove('hidden');
+                doctorView.classList.add('hidden');
+                adminView.classList.add('hidden');
+                navActions.innerHTML = `<span class="text-xs text-sky-100 hidden sm:inline">Acesso Restrito</span>`;
+            } else {
+                authSection.classList.add('hidden');
+                navActions.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs font-bold leading-tight">${escapeHtml(currentUser.nome)}</div>
+                            <div class="text-[10px] text-sky-200 capitalize">${currentUser.role === 'admin' ? 'Secretaria de Saúde' : 'Plantonista'} ${currentUser.role === 'doctor' ? '(' + currentUser.crm + ')' : ''}</div>
+                        </div>
+                        <button type="button" onclick="handleLogout()" class="bg-rose-600/90 hover:bg-rose-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sair
+                        </button>
+                    </div>
+                `;
+
+                if (currentUser.role === 'admin') {
+                    doctorView.classList.add('hidden');
+                    adminView.classList.remove('hidden');
+                    renderAdminDashboard();
+                } else {
+                    adminView.classList.add('hidden');
+                    doctorView.classList.remove('hidden');
+                    renderDoctorDashboard();
+                }
+            }
+        }
+
+        function navigateHome() {
+            updateAppView();
+        }
+
+        function toggleAuthView(view) {
+            const loginCard = document.getElementById('loginCard');
+            const signupCard = document.getElementById('signupCard');
+            if (view === 'signup') {
+                loginCard.classList.add('hidden');
+                signupCard.classList.remove('hidden');
+            } else {
+                signupCard.classList.add('hidden');
+                loginCard.classList.remove('hidden');
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const password = document.getElementById('loginPassword').value;
+
+            loadData();
+            const found = users.find(u => u.email.toLowerCase() === email && u.password === password);
+            if (found) {
+                currentUser = found;
+                saveData();
+                showToast(`Bem-vindo(a), ${found.nome}!`);
+                updateAppView();
+            } else {
+                showToast('E-mail ou senha incorretos!', 'error');
+            }
+        }
+
+        function toggleCrmVisibility() {
+            const role = document.getElementById('signupRole').value;
+            const crmGroup = document.getElementById('crmFieldsGroup');
+            const crmInput = document.getElementById('signupCrm');
+            if (role === 'admin') {
+                crmGroup.classList.add('hidden');
+                crmInput.required = false;
+            } else {
+                crmGroup.classList.remove('hidden');
+                crmInput.required = true;
+            }
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            loadData();
+
+            const nome = document.getElementById('signupNome').value.trim();
+            const role = document.getElementById('signupRole').value;
+            const crmNum = document.getElementById('signupCrm').value.trim();
+            const uf = document.getElementById('signupUf').value;
+            const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+            const password = document.getElementById('signupPassword').value;
+
+            // Bloquear criação de mais de um perfil gestor
+            if (role === 'admin') {
+                if (email !== ADMIN_EMAIL.toLowerCase()) {
+                    showToast('O e-mail informado não está autorizado para o perfil de Secretaria de Saúde.', 'error');
+                    return;
+                }
+                const existingAdmin = users.find(u => u.role === 'admin' && u.email !== ADMIN_EMAIL);
+                if (existingAdmin) {
+                    showToast('Já existe um perfil gestor cadastrado.', 'error');
+                    return;
+                }
+            }
+
+            const existingEmail = users.find(u => u.email.toLowerCase() === email);
+            if (existingEmail) {
+                showToast('Este e-mail já está cadastrado! Faça login.', 'error');
+                return;
+            }
+
+            const fullCrm = role === 'doctor' ? `${crmNum}/${uf}` : 'SEC-SAUDE';
+            const newUser = {
+                id: 'usr_' + Date.now(),
+                nome,
+                crm: fullCrm,
+                email,
+                password,
+                role
+            };
+
+            users.push(newUser);
+            currentUser = newUser;
+            saveData();
+            showToast('Cadastro realizado com sucesso!');
+            updateAppView();
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            saveData();
+            showToast('Sessão encerrada.');
+            toggleAuthView('login');
+            updateAppView();
+        }
+
+        function setDocShiftPreset(type) {
+            docCurrentPreset = type;
+            const btnDiurno = document.getElementById('btnPresetDiurno');
+            const btnNoturno = document.getElementById('btnPresetNoturno');
+            const btnCustom = document.getElementById('btnPresetCustom');
+            const startTime = document.getElementById('docStartTime');
+            const endTime = document.getElementById('docEndTime');
+
+            btnDiurno.className = "py-2 text-xs font-bold rounded-xl border transition bg-slate-50 border-slate-200 text-slate-600";
+            btnNoturno.className = "py-2 text-xs font-bold rounded-xl border transition bg-slate-50 border-slate-200 text-slate-600";
+            btnCustom.className = "py-2 text-xs font-bold rounded-xl border transition bg-slate-50 border-slate-200 text-slate-600";
+
+            if (type === 'diurno') {
+                btnDiurno.className = "py-2 text-xs font-bold rounded-xl border transition bg-sky-50 border-sky-300 text-sky-700";
+                startTime.value = "07:00";
+                endTime.value = "19:00";
+            } else if (type === 'noturno') {
+                btnNoturno.className = "py-2 text-xs font-bold rounded-xl border transition bg-sky-50 border-sky-300 text-sky-700";
+                startTime.value = "19:00";
+                endTime.value = "07:00";
+            } else {
+                btnCustom.className = "py-2 text-xs font-bold rounded-xl border transition bg-sky-50 border-sky-300 text-sky-700";
+            }
+            recalculateDocHours();
+        }
+
+        function recalculateDocHours() {
+            const start = document.getElementById('docStartTime').value;
+            const end = document.getElementById('docEndTime').value;
+            const hours = calculateHours(start, end);
+            document.getElementById('docCalculatedHours').innerText = hours.toFixed(1) + 'h';
+        }
+
+        function handleRegisterShift(e) {
+            e.preventDefault();
+            loadData();
+
+            const data = document.getElementById('docShiftDate').value;
+            const startTime = document.getElementById('docStartTime').value;
+            const endTime = document.getElementById('docEndTime').value;
+            const obs = document.getElementById('docShiftObs').value.trim();
+            const hours = calculateHours(startTime, endTime);
+
+            const newShift = {
+                id: 'shift_' + Date.now(),
+                doctorId: currentUser.id,
+                doctorName: currentUser.nome,
+                doctorCrm: currentUser.crm,
+                data,
+                startTime,
+                endTime,
+                hours,
+                obs: obs || '-'
+            };
+
+            plantoes.push(newShift);
+            saveData();
+
+            document.getElementById('docShiftObs').value = '';
+            showToast('Plantão registrado com sucesso!');
+            renderDoctorDashboard();
+        }
+
+        function renderDoctorDashboard() {
+            loadData();
+            const myShifts = plantoes.filter(p => p.doctorId === currentUser.id);
+            myShifts.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+            let totalEquivalent = 0;
+            myShifts.forEach(s => {
+                totalEquivalent += (s.hours / 12);
+            });
+
+            document.getElementById('docTotalCounter').innerText = totalEquivalent.toFixed(1).replace('.', ',') + ' plantões';
+            document.getElementById('docShiftCountBadge').innerText = `${myShifts.length} registro(s)`;
+
+            const tbody = document.getElementById('docShiftsTableBody');
+            if (myShifts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum plantão registrado até o momento.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            myShifts.forEach(s => {
+                const eq = s.hours / 12;
+                html += `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 font-medium text-slate-800">${formatDate(s.data)}</td>
+                        <td class="p-3 text-slate-600">${s.startTime} às ${s.endTime}</td>
+                        <td class="p-3 font-semibold text-slate-700">${s.hours.toFixed(1)}h</td>
+                        <td class="p-3"><span class="bg-sky-50 text-sky-700 font-bold px-2 py-0.5 rounded-md">${eq.toFixed(1).replace('.', ',')} plantão</span></td>
+                        <td class="p-3 text-slate-500">${escapeHtml(s.obs)}</td>
+                        <td class="p-3 text-right">
+                            <button onclick="promptDeleteShift('${s.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Excluir">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function renderAdminDashboard() {
+            loadData();
+            const search = (document.getElementById('adminSearchFilter')?.value || '').toLowerCase();
+            const docFilter = document.getElementById('adminDoctorFilter')?.value || '';
+
+            const doctorSelect = document.getElementById('adminDoctorFilter');
+            if (doctorSelect) {
+                const doctorsList = users.filter(u => u.role === 'doctor');
+                let optHtml = '<option value="">Todos os Médicos</option>';
+                doctorsList.forEach(d => {
+                    optHtml += `<option value="${d.id}" ${docFilter === d.id ? 'selected' : ''}>${d.nome} (${d.crm})</option>`;
+                });
+                doctorSelect.innerHTML = optHtml;
+            }
+
+            let filtered = plantoes.filter(p => {
+                const matchSearch = p.doctorName.toLowerCase().includes(search) || p.doctorCrm.toLowerCase().includes(search);
+                const matchDoc = docFilter ? p.doctorId === docFilter : true;
+                return matchSearch && matchDoc;
+            });
+
+            filtered.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+            let totalEquivAll = 0;
+            let totalHoursAll = 0;
+            plantoes.forEach(p => {
+                totalEquivAll += (p.hours / 12);
+                totalHoursAll += p.hours;
+            });
+
+            document.getElementById('adminTotalPlantaoCount').innerText = totalEquivAll.toFixed(1).replace('.', ',');
+            document.getElementById('adminTotalHoursCount').innerText = totalHoursAll.toFixed(1).replace('.', ',') + 'h';
+            document.getElementById('adminRecordCount').innerText = `${filtered.length} registro(s)`;
+
+            const tbody = document.getElementById('adminShiftsTableBody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Nenhum plantão encontrado com os filtros atuais.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(s => {
+                const eq = s.hours / 12;
+                html += `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 font-medium text-slate-800">${formatDate(s.data)}</td>
+                        <td class="p-3 font-bold text-slate-800">${escapeHtml(s.doctorName)}</td>
+                        <td class="p-3 text-slate-600">${escapeHtml(s.doctorCrm)}</td>
+                        <td class="p-3 text-slate-600">${s.startTime} às ${s.endTime}</td>
+                        <td class="p-3 font-semibold text-slate-700">${s.hours.toFixed(1)}h</td>
+                        <td class="p-3"><span class="bg-sky-50 text-sky-700 font-bold px-2 py-0.5 rounded-md">${eq.toFixed(1).replace('.', ',')} plantão</span></td>
+                        <td class="p-3 text-slate-500">${escapeHtml(s.obs)}</td>
+                        <td class="p-3 text-right">
+                            <button onclick="promptDeleteShift('${s.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Excluir">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function promptDeleteShift(id) {
+            deleteTargetId = id;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            deleteTargetId = null;
+            document.getElementById('deleteModal').classList.add('hidden');
+        }
+
+        function confirmDeleteShift() {
+            if (!deleteTargetId) return;
+            loadData();
+            plantoes = plantoes.filter(p => p.id !== deleteTargetId);
+            saveData();
+            closeDeleteModal();
+            showToast('Plantão excluído com sucesso.');
+            updateAppView();
+        }
+
+        // BACKUP & RESTORE FUNCTIONS (PREVENTS DATA LOSS ON DISASTER)
+        function backupSystemData() {
+            loadData();
+            const exportData = {
+                users,
+                plantoes,
+                exportDate: new Date().toISOString()
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `medplantao_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Backup do sistema baixado com sucesso!');
+        }
+
+        function restoreSystemData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.users && parsed.plantoes) {
+                        users = parsed.users;
+                        plantoes = parsed.plantoes;
+                        saveData();
+                        showToast('Dados e usuários restaurados com sucesso!');
+                        updateAppView();
+                    } else {
+                        showToast('Arquivo de backup inválido.', 'error');
+                    }
+                } catch(err) {
+                    showToast('Erro ao ler o arquivo de backup.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportToCSV() {
+            loadData();
+            if (plantoes.length === 0) {
+                showToast('Não há dados para exportar.', 'error');
+                return;
+            }
+
+            let csv = 'Data;Medico;CRM;Inicio;Termino;Horas;Equivalencia12h;Observacao\n';
+            plantoes.forEach(p => {
+                const eq = (p.hours / 12).toFixed(1).replace('.', ',');
+                csv += `${p.data};"${p.doctorName}";${p.doctorCrm};${p.startTime};${p.endTime};${p.hours.toFixed(1)};${eq};"${p.obs}"\n`;
+            });
+
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio_plantoes_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Relatório CSV exportado com sucesso!');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white';
+            const icon = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check';
+
+            toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-xl text-xs font-medium flex items-center gap-2.5 transition transform translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${escapeHtml(message)}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
